@@ -39,9 +39,6 @@ common = dict(image=arc3_image,
 def run():
     import subprocess
     
-    # server = subprocess.Popen(f"cd {d} && make server", shell=True)
-    # subprocess.run(f"cd {d} && make check-server", check=True, shell=True)
-    
     try:
         subprocess.run(
             f"cd {d} && uv run --no-sync python -c \"import arc_agi; arc_agi.Arcade(environments_dir='/results/envs').make('{game}')\"",
@@ -52,13 +49,20 @@ def run():
             f"MAX_RUNTIME_MINUTES={max_runtime_mins} ENVIRONMENTS_DIR=/results/envs EXPERIMENTS_DIR=/results",
             check=True, shell=True)
         
-    # subprocess.run(f"cd {d} && make stop-server")
-    # server.terminate()
     finally:
         results.commit()
         hf_cache.commit()
         
-# @app.function(**common)
-# def list_games():
-#     import subprocess
-#     subprocess.run(f"cd {d} && uv run --no-sync inference-taaf-run --include-tags official --list-games", shell=True, check=True)
+@app.function(**common)
+def list_games():
+    import subprocess
+    subprocess.run(f"cd {d} && uv run --no-sync inference-taaf-run --include-tags official --list-games", shell=True, check=True)
+    
+@app.local_entrypoint()
+def main(execute: str):
+    if execute == "play-arc3":
+        run.remote()
+    elif execute == "list-games":
+        list_games.remote()
+    else:
+        raise ValueError(f"Invalid value for --execute {execute}, must be one of 'play-arc3' or 'list-games'")
